@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#FFFDE7">
+
+    <link rel="icon" href="https://file.garden/aWe99vhwaGcNwkok/%E6%B6%88%E6%B6%88%E6%A8%82/item_5.png">
+
+    <title>角色派對：無盡星光 Ver.Final</title>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* 高級馬卡龍配色 */
+            --bg-gradient: radial-gradient(circle at 50% 30%, #FFFDE7, #FFECB3);
+            --primary: #FFAB91; 
+            --primary-dark: #D84315;
+            --secondary: #81D4FA;
+            --accent: #FFD54F;
+            --text-main: #5D4037;
+            --text-sub: #8D6E63;
+            --glass: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.9);
+            --shadow-float: 0 10px 30px rgba(93, 64, 55, 0.12);
+            --grid-cols: 6;
+            --grid-rows: 9;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; font-family: 'Zen Maru Gothic', sans-serif; }
+
+        body {
+            background: var(--bg-gradient);
+            margin: 0; padding: 0;
+            width: 100vw; height: 100vh;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            color: var(--text-main);
+        }
+
+        /* --- 頂部資訊區 --- */
+        header {
+            flex: 0 0 auto;
+            padding: max(10px, env(safe-area-inset-top)) 20px 5px;
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            z-index: 20;
+            display: flex; flex-direction: column; gap: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        }
+
+        .info-row { display: flex; justify-content: space-between; align-items: flex-end; }
+        
+        .level-badge {
+            background: #FFF; padding: 5px 15px; border-radius: 20px;
+            font-size: 1.1rem; font-weight: 900; color: var(--primary-dark);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 2px solid var(--accent);
+            display: flex; align-items: center; gap: 5px;
+        }
+        
+        .total-score { font-size: 0.9rem; color: var(--text-sub); font-weight: bold; }
+        .total-score span { font-size: 1.2rem; color: var(--text-main); font-weight: 900; }
+
+        /* 進度條 */
+        .progress-container {
+            width: 100%; height: 12px; background: rgba(255,255,255,0.5); 
+            border-radius: 10px; overflow: hidden; position: relative;
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+        .progress-fill { 
+            height: 100%; background: linear-gradient(90deg, #FFD54F, #FF7043); 
+            width: 0%; transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            box-shadow: 0 0 10px rgba(255, 171, 145, 0.5);
+        }
+        .target-text { 
+            position: absolute; width: 100%; text-align: center; top: -1px; 
+            font-size: 0.7rem; color: rgba(255,255,255,0.9); font-weight: 900; text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        /* --- 遊戲主舞台 --- */
+        #game-stage {
+            flex: 1;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            position: relative;
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        /* 棋盤容器 */
+        #grid-container {
+            width: 100%; max-width: 450px;
+            aspect-ratio: 6 / 9;
+            background: rgba(255,255,255,0.4);
+            border-radius: 24px;
+            border: 4px solid #FFF;
+            box-shadow: var(--shadow-float), inset 0 0 30px rgba(255,255,255,0.6);
+            position: relative;
+            touch-action: none;
+            flex-shrink: 0; 
+            z-index: 10;
+        }
+
+        #grid { width: 100%; height: 100%; position: relative; z-index: 10; }
+
+        /* --- 方塊 Tile --- */
+        .tile {
+            position: absolute;
+            width: calc(100% / var(--grid-cols));
+            height: calc(100% / var(--grid-rows));
+            padding: 3px; z-index: 10;
+            transition: top 0.3s cubic-bezier(0.19, 1, 0.22, 1), left 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+        
+        .tile-inner {
+            width: 100%; height: 100%;
+            background: #FFF; border-radius: 22%;
+            box-shadow: 0 4px 8px rgba(93, 64, 55, 0.12), inset 0 -3px 0 rgba(0,0,0,0.05);
+            overflow: hidden; position: relative;
+            transform: scale(0.95); transition: transform 0.15s;
+            border: 2px solid transparent;
+        }
+        .tile img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+
+        /* 點擊時的果凍動畫 */
+        .tile.pressed .tile-inner { transform: scale(0.85); }
+
+        /* 技能狀態 */
+        .tile.skill-ready .tile-inner {
+            border-color: #FFF;
+            box-shadow: 0 0 0 2px var(--accent), 0 0 25px var(--accent), inset 0 0 10px #FFF;
+            animation: breathe 1.2s infinite ease-in-out alternate;
+        }
+        .tile.skill-ready::after {
+            content: '✦'; position: absolute; bottom: 2px; right: 2px;
+            color: var(--primary-dark); font-size: 14px; font-weight: 900;
+            text-shadow: 0 0 5px #FFF; animation: spin 3s infinite linear;
+        }
+
+        @keyframes breathe { 0% { filter: brightness(1); transform: scale(0.95); } 100% { filter: brightness(1.15); transform: scale(1.02); } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* 消除動畫 */
+        .tile.matched .tile-inner { animation: pop 0.35s forwards ease-out; }
+        @keyframes pop { 0% {transform: scale(1);} 40% {transform: scale(1.3); opacity: 0.9;} 100% {transform: scale(0); opacity: 0;} }
+
+        /* --- 懸浮對話氣泡 --- */
+        .float-dialogue-wrapper {
+            position: absolute; 
+            bottom: 20px; 
+            left: 0; width: 100%;
+            display: flex; justify-content: center;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        #dialogue-bubble {
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid var(--primary);
+            border-radius: 50px;
+            padding: 8px 20px 8px 8px;
+            display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transform: translateY(30px) scale(0.8); opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-width: 90%;
+        }
+
+        #dialogue-bubble.show { transform: translateY(0) scale(1); opacity: 1; }
+
+        .d-avatar {
+            width: 50px; height: 50px; border-radius: 50%;
+            border: 3px solid var(--accent); background: #FFF;
+            object-fit: cover; flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .d-content { display: flex; flex-direction: column; justify-content: center; }
+        .d-name { font-size: 0.75rem; color: var(--primary-dark); font-weight: 900; margin-bottom: 2px; }
+        .d-text { font-size: 0.9rem; color: var(--text-main); font-weight: bold; line-height: 1.2; }
+
+        /* --- 底部道具欄 --- */
+        #bottom-dock {
+            flex: 0 0 auto; width: 100%; background: #FFF;
+            padding: 15px 20px max(20px, env(safe-area-inset-bottom));
+            border-radius: 30px 30px 0 0;
+            box-shadow: 0 -10px 40px rgba(93, 64, 55, 0.08);
+            display: flex; justify-content: center; gap: 20px; align-items: center;
+            z-index: 40;
+        }
+        
+        .item-btn {
+            position: relative; width: 65px; height: 65px; border-radius: 18px;
+            background: #FAFAFA; border: none;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: 0 5px 0 #EEE; transition: all 0.15s;
+        }
+        .item-btn:active { transform: translateY(5px); box-shadow: 0 0 0; }
+        .item-btn.active { 
+            background: #FFF8E1; border: 2px solid var(--primary); 
+            box-shadow: 0 0 20px var(--primary); transform: translateY(-3px); 
+        }
+        .item-btn img { width: 36px; height: 36px; margin-bottom: 2px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); }
+        .item-count {
+            position: absolute; top: -6px; right: -6px;
+            background: linear-gradient(45deg, #FF5252, #FF1744); color: #FFF; font-size: 0.75rem; 
+            width: 22px; height: 22px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; 
+            border: 2px solid #FFF; font-weight: 900; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* --- 特效層 --- */
+        #vfx-layer { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index: 50; overflow: hidden; }
+        .float-text {
+            position: absolute; font-weight: 900; color: var(--primary-dark);
+            text-shadow: 2px 2px 0 #FFF; animation: floatUp 1.2s forwards; font-size: 1.5rem; 
+            white-space: nowrap; z-index: 60;
+        }
+        @keyframes floatUp { 0% {transform:translate(-50%, 0) scale(0.5); opacity: 0;} 20% {transform:translate(-50%, -20px) scale(1.2); opacity: 1;} 100% {transform:translate(-50%, -80px) scale(1); opacity: 0;} }
+
+        /* --- 標題畫面 --- */
+        #title-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #FFFDE7 0%, #FFCCBC 100%);
+            z-index: 1000; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; text-align: center;
+        }
+        .title-card {
+            background: rgba(255,255,255,0.95); padding: 40px; border-radius: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15); border: 6px solid #FFF;
+            width: 85%; max-width: 350px; animation: float 3s infinite ease-in-out;
+        }
+        @keyframes float { 0%, 100% {transform: translateY(0);} 50% {transform: translateY(-15px);} }
+        .btn-start {
+            background: linear-gradient(45deg, #FFCA28, #FF7043);
+            color: #FFF; border: none; padding: 15px 50px; border-radius: 50px;
+            font-size: 1.4rem; font-weight: 900; margin-top: 30px;
+            box-shadow: 0 8px 0 #E65100, 0 15px 20px rgba(255, 112, 67, 0.4);
+            transition: transform 0.1s; cursor: pointer;
+        }
+        .btn-start:active { transform: translateY(8px); box-shadow: 0 0 0; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="info-row">
+            <div class="level-badge">
+                <span>⭐ Lv.</span><span id="ui-level">1</span>
+            </div>
+            <div class="total-score">總分: <span id="ui-total-score">0</span></div>
+        </div>
+        <div class="progress-container">
+            <div class="progress-fill" id="ui-progress"></div>
+            <div class="target-text">NEXT LEVEL: <span id="ui-target">1000</span></div>
+        </div>
+    </header>
+
+    <div id="game-stage">
+        <div id="grid-container">
+            <div id="grid"></div>
+            <div id="vfx-layer"></div>
+            
+            <div class="float-dialogue-wrapper">
+                <div id="dialogue-bubble">
+                    <img class="d-avatar" id="d-img" src="">
+                    <div class="d-content">
+                        <div class="d-name" id="d-name">名字</div>
+                        <div class="d-text" id="d-text">內容</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="bottom-dock">
+        <button class="item-btn" id="btn-bomb" onclick="useItem('bomb')">
+            <img src="https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%AB%BE%E9%83%8E.png">
+            <span class="item-count" id="cnt-bomb">3</span>
+        </button>
+        <button class="item-btn" id="btn-lightning" onclick="useItem('lightning')">
+            <img src="https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%B0%8F%E9%9B%85%E5%90%84.png">
+            <span class="item-count" id="cnt-lightning">3</span>
+        </button>
+        <button class="item-btn" id="btn-shuffle" onclick="useItem('shuffle')">
+            <img src="https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%98%9F%E6%98%9F.png">
+            <span class="item-count" id="cnt-shuffle">3</span>
+        </button>
+        <button class="item-btn" onclick="toggleSkillInfo()">
+            <img src="https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%93%88%E8%98%87.png" style="opacity:0.8">
+            <span style="font-size:10px; position:absolute; bottom:5px; color:#888; font-weight:bold;">說明</span>
+        </button>
+    </div>
+
+    <div id="title-screen">
+        <div class="title-card">
+            <img src="https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%98%9F%E6%98%9F.png" style="width:100px; height:100px; border-radius:50%; border:4px solid gold; margin-bottom:15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            <h1 style="color:#FF8F00; margin:0; text-shadow:2px 2px 0 #FFF;">全明星<br>無盡派對</h1>
+            <p style="color:#8D6E63; font-weight:bold; margin-top:10px;">目前等級: <span id="title-level">1</span></p>
+            <button class="btn-start" onclick="startGame()">START</button>
+        </div>
+    </div>
+
+<script>
+    // --- 0. 音效與 BGM 系統 (Audio System) ---
+    const AUDIO_SRC = {
+        bgm: "https://file.garden/aWe99vhwaGcNwkok/%E6%B6%88%E6%B6%88%E6%A8%82/AudioCutter_%E1%84%89%E1%85%A2%E1%86%BA%E1%84%87%E1%85%A7%E1%86%AF(Daystar)-Sugar%20Cookie.mp3",
+        match: "https://file.garden/aWe99vhwaGcNwkok/%E6%B6%88%E6%B6%88%E6%A8%82/%E6%B1%BA%E5%AE%9A%E3%83%9C%E3%82%BF%E3%83%B3%E3%82%92%E6%8A%BC%E3%81%9942.mp3",
+        skill: "https://file.garden/aWe99vhwaGcNwkok/%E6%B6%88%E6%B6%88%E6%A8%82/%E6%B1%BA%E5%AE%9A%E3%83%9C%E3%82%BF%E3%83%B3%E3%82%92%E6%8A%BC%E3%81%9915.mp3",
+        swapFail: "https://file.garden/aWe99vhwaGcNwkok/%E6%B6%88%E6%B6%88%E6%A8%82/%E6%B1%BA%E5%AE%9A%E3%83%9C%E3%82%BF%E3%83%B3%E3%82%92%E6%8A%BC%E3%81%9939.mp3",
+        shuffle: "https://file.garden/aWe99vhwaGcNwkok/%E6%B6%88%E6%B6%88%E6%A8%82/%E6%B1%BA%E5%AE%9A%E3%83%9C%E3%82%BF%E3%83%B3%E3%82%92%E6%8A%BC%E3%81%9912.mp3",
+        bomb: "https://file.garden/aWe99vhwaGcNwkok/%E6%B6%88%E6%B6%88%E6%A8%82/%E6%B1%BA%E5%AE%9A%E3%83%9C%E3%82%BF%E3%83%B3%E3%82%92%E6%8A%BC%E3%81%9916.mp3",
+        levelUp: "https://file.garden/aWe99vhwaGcNwkok/%E6%B6%88%E6%B6%88%E6%A8%82/%E6%B1%BA%E5%AE%9A%E3%83%9C%E3%82%BF%E3%83%B3%E3%82%92%E6%8A%BC%E3%81%9929.mp3"
+    };
+
+    const SFX = {
+        match: new Audio(AUDIO_SRC.match),
+        skill: new Audio(AUDIO_SRC.skill),
+        swapFail: new Audio(AUDIO_SRC.swapFail),
+        shuffle: new Audio(AUDIO_SRC.shuffle),
+        bomb: new Audio(AUDIO_SRC.bomb),
+        levelUp: new Audio(AUDIO_SRC.levelUp)
+    };
+    
+    const BGM = new Audio(AUDIO_SRC.bgm);
+    BGM.loop = true;
+    BGM.volume = 0.4; // 稍微小聲一點以免吵雜
+
+    function playSound(name) {
+        if (SFX[name]) {
+            SFX[name].currentTime = 0;
+            SFX[name].play().catch(() => {}); // 忽略自動播放限制錯誤
+        }
+    }
+
+    // --- 1. 角色資料庫 (包含性格修正台詞) ---
+    const CHAR_DB = {
+        'venator': { 
+            name: '維納托', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E7%B6%AD%E7%B4%8D%E6%89%98.png', type: 'random',
+            quotes: { match: ['讚美本王！', '哼，這點小事。', '本王的預知沒錯。'], skill: ['這就是本王的力量！', '一切都在計算之中。'], item: ['嗯？有趣的發明。'] }
+        },
+        'narcissus': { 
+            name: '納希瑟斯', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E7%B4%8D%E5%B8%8C%E7%91%9F%E6%96%AF.png', type: 'area',
+            quotes: { match: ['為了維納托先生！', '謹慎行動。', '排除障礙。'], skill: ['我會守護這裡！', '別想傷害大家。'], item: ['為了保護...'] }
+        },
+        'ora': { 
+            name: '奧拉', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%A5%A7%E6%8B%89.png', type: 'cross',
+            quotes: { match: ['麻煩死了。', '嘖。', '別浪費時間。'], skill: ['肅清開始。', '時間，停止吧。'], item: ['快點結束。'] }
+        },
+        'melas': { 
+            name: '蜜拉思', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%9C%9C%E6%8B%89%E6%80%9D.png', type: 'area',
+            quotes: { match: ['哎呀，真有趣～', '呵呵。', '我很惜命的。'], skill: ['給你們一點小詛咒～', '看戲時間結束囉。'], item: ['這東西安全嗎？'] }
+        },
+        'manmu': { 
+            name: '小目', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%B0%8F%E7%9B%AE.png', type: 'convert',
+            quotes: { match: ['寶貝你看！我厲害吧！', '我是最棒的總裁！', '天涼了...'], skill: ['通通變成我的資產！', '閃亮登場✨！'], item: ['這個值多少錢？'] }
+        },
+        'mollie': { 
+            name: '茉莉', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%8C%89%E8%8E%89.png', type: 'random',
+            quotes: { match: ['要加班了嗎...', '唉...', '我的芒果真可愛。'], skill: ['緊急手術開始。', '別受傷囉。'], item: ['這是醫療器材嗎？'] }
+        },
+        'virdrakos': { 
+            name: '蘭蘭', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%98%AD%E8%98%AD.png', type: 'area',
+            quotes: { match: ['哇哈哈！蘭蘭是最強的呀！', '誰敢擋蘭蘭呀？', '錢拿來呀！'], skill: ['吃我一記龍之吐息呀！', '全部燒掉呀！'], item: ['這個好玩！給我呀！'] }
+        },
+        'jornona': { 
+            name: '喬諾娜', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%96%AC%E8%AB%BE%E5%A8%9C.png', type: 'color',
+            quotes: { match: ['啦啦啦～', '有櫻桃吃嗎？', '蘭蘭好帥～'], skill: ['聽我唱歌吧！', '開派對囉！'], item: ['這個可以當麥克風嗎？'] }
+        },
+        'kleion': { 
+            name: '克里昂', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%85%8B%E9%87%8C%E6%98%82.png', type: 'col',
+            quotes: { match: ['正義必勝！', '來運動吧！', '我是直男。'], skill: ['衝鋒陷陣！', '化學實驗開始！'], item: ['這不科學。'] }
+        },
+        'costa': { 
+            name: '科絲塔', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E7%A7%91%E7%B5%B2%E5%A1%94.png', type: 'cross',
+            quotes: { match: ['BATA...', '真是奇怪。', '我會加油的BATA！'], skill: ['雖然不懂但感覺很厲害BATA！', '要融化了BATA...'], item: ['這是什麼BATA？'] }
+        },
+        'james': { 
+            name: '小雅各', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%B0%8F%E9%9B%85%E5%90%84.png', type: 'cross',
+            quotes: { match: ['...', '(摩斯電碼: 媽的)', '好想吃橘子...'], skill: ['(高壓電擊發射！)', '嗶哩嗶哩——！'], item: ['(好奇地看著道具)'] }
+        },
+        'andreas': { 
+            name: '安德烈', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%AE%89%E5%BE%B7%E7%83%88.png', type: 'col',
+            quotes: { match: ['報告！發現目標。', '小雅各...', '機械運作正常。'], skill: ['外骨骼全功率輸出。', '修正錯誤。'], item: ['報告！申請使用道具。'] }
+        },
+        'peter': { 
+            name: '彼得', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%BD%BC%E5%BE%97.png', type: 'cross',
+            quotes: { match: ['離我遠點。', '貓貓！', 'Shit。'], skill: ['驅散邪靈！', '我要喝潔廁靈了。'], item: ['這東西吉祥嗎？'] }
+        },
+        'lynn': { 
+            name: '林恩', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%9E%97%E6%81%A9.png', type: 'convert',
+            quotes: { match: ['涼拌。', '有錢賺嗎？', '彼得閉嘴。'], skill: ['這就是商業手段。', '通通收購。'], item: ['成本多少？'] }
+        },
+        'novian': { 
+            name: '諾維安', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%AB%BE%E7%B6%AD%E5%AE%89.png', type: 'row',
+            quotes: { match: ['今天天氣真好！', '我是船長！', '大家要好好相處喔！'], skill: ['揚帆啟航囉！', '全速前進！'], item: ['這個好像很有用！'] }
+        },
+        'caroline': { 
+            name: '卡洛特', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%8D%A1%E6%B4%9B%E7%89%B9.png', type: 'random',
+            quotes: { match: ['這很友善。', '嗶嗶——收到訊號。', '這不友善！(尖叫)'], skill: ['電波干擾...開始。', '連線中斷。'], item: ['不明物體檢測中。'] }
+        },
+        'estrella': { 
+            name: '星星', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%98%9F%E6%98%9F.png', type: 'random',
+            quotes: { match: ['我來幫忙了！', '我有好多個！', '我要吃東西！'], skill: ['分裂——！', '嘿咻嘿咻！'], item: ['這個可以吃嗎？'] }
+        },
+        'poseidon': { 
+            name: '海神', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%B5%B7%E7%A5%9E.png', type: 'color',
+            quotes: { match: ['天天開心！', '衝啊！！', '大黑你看！'], skill: ['大浪來啦！', '哈哈哈哈！'], item: ['這是什麼好玩的？'] }
+        },
+        'hades': { 
+            name: '冥神', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%86%A5%E7%A5%9E.png', type: 'row',
+            quotes: { match: ['...', '海神...', '有點亮。'], skill: ['...安靜。', '...消失。'], item: ['...'] }
+        },
+        'noran': { 
+            name: '諾郎', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%AB%BE%E9%83%8E.png', type: 'area',
+            quotes: { match: ['...別看我。', '煩死人了。', '離諾維安遠點。'], skill: ['我要跟你一起爆了。', '全部炸飛。'], item: ['哼，勉強用一下。'] }
+        },
+        'joruuna': { 
+            name: '蘇郎', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%98%87%E9%83%8E.png', type: 'row',
+            quotes: { match: ['哈哈。', '隨便吧。', '下班了嗎？'], skill: ['別打擾我休息。', '微笑面對。'], item: ['哈蘇沒教過這個。'] }
+        },
+        'nathanael': { 
+            name: '拿但業', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%8B%BF%E4%BD%86%E6%A5%AD.png', type: 'random',
+            quotes: { match: ['好累...', '牛排...', '不想動。'], skill: ['稍微...動一下吧。', '真麻煩。'], item: ['腓力，幫我拿這個。'] }
+        },
+        'philippos': { 
+            name: '腓力', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%85%93%E5%8A%9B.png', type: 'area',
+            quotes: { match: ['少主！', '我看見貓了！', '喝！'], skill: ['保護少主！', '吃我一拳！'], item: ['少主這個好厲害！'] }
+        },
+        'lilith': { 
+            name: '莉莉絲', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%8E%89%E8%8E%89%E6%96%AF.png', type: 'convert',
+            quotes: { match: ['想喝茶了～', '阿朵拉～', '真無聊。'], skill: ['聽話～', '都變成我的孩子吧。'], item: ['送給阿朵拉好了。'] }
+        },
+        'adorabilis': { 
+            name: '阿朵拉', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E9%98%BF%E6%9C%B5%E6%8B%89.png', type: 'random',
+            quotes: { match: ['莉莉絲！', '我的孩子呢？', '討厭小偷！'], skill: ['乖孩子～', '縫起來吧。'], item: ['可以用來做人偶嗎？'] }
+        },
+        'lazar': { 
+            name: '拉扎爾', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%8B%89%E6%89%8E%E7%88%BE.png', type: 'random', 
+            quotes: { match: ['真是個好孩子。', '要聽故事嗎？', '呵呵。'], skill: ['痛痛飛走囉。', '治療時間。'], item: ['小心使用喔。'] }
+        },
+        'hassel': { 
+            name: '哈蘇', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%93%88%E8%98%87.png', type: 'col',
+            quotes: { match: ['我有記。', '這不在計畫內。', '蘇郎？'], skill: ['記錄消除。', '按照規矩來。'], item: ['這我也要記下來。'] }
+        },
+        'cousin': { 
+            name: '表哥', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%A1%A8%E5%93%A5.png', type: 'area',
+            quotes: { match: ['老子罩你！', '表弟！', '酷吧？'], skill: ['看老子的！', '誰敢動我弟妹！'], item: ['這玩意挺潮的。'] }
+        }
+    };
+
+    // 技能說明文本
+    const SKILL_DESC = {
+        'random': '【隨機】隨機消除5個', 'area': '【爆炸】周圍九宮格', 'cross': '【十字】消除十字線',
+        'color': '【同色】消除所有同色', 'row': '【橫掃】消除整列', 'col': '【貫穿】消除整行',
+        'convert': '【轉化】周圍變自己'
+    };
+
+    // --- 2. 遊戲變數與 DOM (Globals) ---
+    const COLS = 6;
+    const ROWS = 9;
+    let grid = [];
+    let activeCharKeys = [];
+    
+    // 存檔與狀態
+    let gameState = { level: 1, totalScore: 0 };
+    let currentLevelScore = 0;
+    let targetScore = 1000;
+    let isProcessing = false;
+    let activeProp = null;
+    let activeInputTile = null;
+    let startX, startY;
+    
+    // 道具狀態
+    let props = { bomb: 3, lightning: 3, shuffle: 3 };
+
+    // DOM Selection
+    const gridEl = document.getElementById('grid');
+    const vfxEl = document.getElementById('vfx-layer');
+    const dialogueBubble = document.getElementById('dialogue-bubble');
+    const dName = document.getElementById('d-name');
+    const dText = document.getElementById('d-text');
+    const dImg = document.getElementById('d-img');
+
+    // 接下來是 Part 3 (遊戲核心邏輯)
+    // --- 3. 初始化與存檔 (Init & Save) ---
+    window.onload = function() {
+        loadData();
+    };
+
+    function loadData() {
+        const saved = localStorage.getItem('party_game_save_final');
+        if (saved) gameState = JSON.parse(saved);
+        document.getElementById('title-level').innerText = gameState.level;
+    }
+
+    function saveData() {
+        localStorage.setItem('party_game_save_final', JSON.stringify(gameState));
+    }
+
+    function startGame() {
+        // 嘗試播放 BGM (需使用者互動)
+        BGM.play().catch(() => console.log("BGM start requires interaction"));
+        document.getElementById('title-screen').style.display = 'none';
+        initLevel();
+    }
+
+    function initLevel() {
+        // 重置道具數量 (每關補滿，增加爽度)
+        props = { bomb: 3, lightning: 3, shuffle: 3 };
+        updatePropUI();
+
+        // 設定目標分數 (指數成長)
+        targetScore = Math.floor(1000 * Math.pow(1.15, gameState.level - 1));
+        currentLevelScore = 0;
+        
+        // 隨機抽選 7 位角色 (保持新鮮感)
+        activeCharKeys = Object.keys(CHAR_DB).sort(() => 0.5 - Math.random()).slice(0, 7);
+        
+        updateUI();
+        createGrid();
+        
+        // 開場對話
+        triggerDialogue(activeCharKeys[0], 'match', `第 ${gameState.level} 關開始！盡情消除吧！`);
+    }
+
+    function createGrid() {
+        gridEl.innerHTML = '';
+        grid = [];
+        for(let r=0; r<ROWS; r++) {
+            grid[r] = [];
+            for(let c=0; c<COLS; c++) {
+                spawnTile(r, c, false);
+            }
+        }
+        // 延遲消除初始連線 (避免開場就特效亂飛)
+        setTimeout(resolveInitialMatches, 500); 
+    }
+
+    function resolveInitialMatches() {
+        const matches = findMatches();
+        if(matches.length > 0) {
+            // 初始如果有連線，直接安靜地重洗對應格子
+            matches.forEach(m => m.forEach(t => {
+                t.type = activeCharKeys[Math.floor(Math.random() * activeCharKeys.length)];
+                updateTileContent(t);
+            }));
+            // 遞迴檢查直到沒有連線
+            resolveInitialMatches();
+        }
+    }
+
+    function spawnTile(r, c, animate=true) {
+        const type = activeCharKeys[Math.floor(Math.random() * activeCharKeys.length)];
+        const el = document.createElement('div');
+        el.className = 'tile';
+        if(animate) el.style.top = `-${100/ROWS}%`; // 從天而降
+        
+        const inner = document.createElement('div');
+        inner.className = 'tile-inner';
+        const img = document.createElement('img');
+        img.src = CHAR_DB[type].img;
+        inner.appendChild(img);
+        el.appendChild(inner);
+
+        // 綁定事件
+        el.addEventListener('touchstart', handleTouchStart, {passive: false});
+        el.addEventListener('touchend', handleTouchEnd, {passive: false});
+        el.addEventListener('mousedown', handleMouseDown); 
+
+        gridEl.appendChild(el);
+        const tile = { r, c, type, el, isSkill: false };
+        grid[r][c] = tile;
+        updateTilePos(tile, animate);
+        return tile;
+    }
+
+    // --- 4. 輸入與觸控 (Input Handling) ---
+    function handleTouchStart(e) {
+        if(isProcessing) return;
+        const t = e.changedTouches[0];
+        startX = t.clientX; startY = t.clientY;
+        activeInputTile = getTileFromEl(e.target);
+        if(activeInputTile) activeInputTile.el.classList.add('pressed');
+        
+        // 道具模式點擊即觸發
+        if(activeProp && activeInputTile) triggerProp(activeInputTile);
+    }
+
+    function handleTouchEnd(e) {
+        if(activeInputTile) activeInputTile.el.classList.remove('pressed');
+        if(isProcessing || !activeInputTile || activeProp) return;
+        const t = e.changedTouches[0];
+        handleSwipe(t.clientX - startX, t.clientY - startY);
+        activeInputTile = null;
+    }
+
+    function handleMouseDown(e) {
+        if(isProcessing) return;
+        startX = e.clientX; startY = e.clientY;
+        activeInputTile = getTileFromEl(e.target);
+        if(activeInputTile) activeInputTile.el.classList.add('pressed');
+        if(activeProp && activeInputTile) triggerProp(activeInputTile);
+
+        document.onmouseup = (ev) => {
+            if(activeInputTile) activeInputTile.el.classList.remove('pressed');
+            if(!activeInputTile || activeProp) return;
+            handleSwipe(ev.clientX - startX, ev.clientY - startY);
+            document.onmouseup = null;
+            activeInputTile = null;
+        };
+    }
+
+    function handleSwipe(dx, dy) {
+        if(Math.abs(dx) > 30 || Math.abs(dy) > 30) {
+            let tr = activeInputTile.r, tc = activeInputTile.c;
+            if(Math.abs(dx) > Math.abs(dy)) dx > 0 ? tc++ : tc--;
+            else dy > 0 ? tr++ : tr--;
+            if(isValid(tr, tc)) swapTiles(activeInputTile, grid[tr][tc]);
+        }
+    }
+
+    // --- 5. 核心邏輯 (Core Logic) ---
+    async function swapTiles(t1, t2) {
+        isProcessing = true;
+        // 交換數據與視覺
+        let tmpType = t1.type; t1.type = t2.type; t2.type = tmpType;
+        let tmpSkill = t1.isSkill; t1.isSkill = t2.isSkill; t2.isSkill = tmpSkill;
+        updateTileContent(t1); updateTileContent(t2);
+        
+        await wait(200);
+        const matches = findMatches();
+        if(matches.length > 0) {
+            await processMatches(matches);
+        } else {
+            // 交換失敗
+            playSound('swapFail');
+            // 還原
+            tmpType = t1.type; t1.type = t2.type; t2.type = tmpType;
+            tmpSkill = t1.isSkill; t1.isSkill = t2.isSkill; t2.isSkill = tmpSkill;
+            updateTileContent(t1); updateTileContent(t2);
+            // 抖動動畫
+            t1.el.animate([{transform:'translateX(0)'}, {transform:'translateX(10px)'}, {transform:'translateX(0)'}], {duration: 200});
+            isProcessing = false;
+        }
+    }
+
+    async function processMatches(matches) {
+        let scoreGain = 0;
+        let removeSet = new Set();
+        let skillSpawns = []; 
+
+        matches.forEach(m => {
+            // 4個以上生成技能棋
+            if(m.length >= 4) {
+                const center = m[Math.floor(m.length/2)];
+                skillSpawns.push(center);
+                m = m.filter(t => t !== center); // 中心點不消除，轉為技能
+            }
+            m.forEach(t => removeSet.add(t));
+            scoreGain += m.length * 10;
+            if(m.length > 3) scoreGain += 20; // 額外加分
+
+            // 隨機對話
+            if(Math.random() > 0.7) triggerDialogue(m[0].type, 'match');
+
+            // 觸發連線中的技能
+            m.forEach(t => { 
+                if(t.isSkill) { 
+                    triggerSkillEffect(t, removeSet); 
+                    triggerDialogue(t.type, 'skill'); 
+                } 
+            });
+        });
+
+        addScore(scoreGain);
+        playSound('match');
+        if (window.navigator && window.navigator.vibrate) navigator.vibrate(30);
+        
+        // 視覺消除
+        removeSet.forEach(t => t.el.classList.add('matched'));
+        
+        await wait(350);
+
+        // 數據清除
+        removeSet.forEach(t => {
+            t.type = null; t.isSkill = false;
+            t.el.classList.remove('matched', 'skill-ready');
+            t.el.style.display = 'none'; // 隱藏
+        });
+
+        // 升級技能棋
+        skillSpawns.forEach(t => {
+            t.isSkill = true; t.el.classList.add('skill-ready');
+            showFloatText('Skill!', t.el);
+        });
+
+        // 重力下落
+        await applyGravity();
+
+        // 連鎖檢查
+        const newM = findMatches();
+        if(newM.length > 0) await processMatches(newM);
+        else {
+            isProcessing = false;
+            checkLevelProgress();
+        }
+    }
+
+    // --- 6. 道具物理修正 (Fixed Logic) ---
+    async function triggerProp(t) {
+        if(props[activeProp] <= 0) return;
+        props[activeProp]--; updatePropUI();
+        isProcessing = true;
+        
+        const pType = activeProp;
+        activeProp = null;
+        document.querySelectorAll('.item-btn').forEach(b => b.classList.remove('active'));
+
+        // 音效與對話
+        if(pType === 'bomb') {
+            triggerDialogue('noran', 'item');
+            playSound('bomb');
+        } else if(pType === 'lightning') {
+            triggerDialogue('james', 'item');
+            playSound('skill');
+        }
+
+        let set = new Set();
+        createVFX(pType, t);
+
+        // 計算範圍
+        if(pType === 'bomb') {
+            for(let r=t.r-1; r<=t.r+1; r++) for(let c=t.c-1; c<=t.c+1; c++) 
+                if(isValid(r,c)) set.add(grid[r][c]);
+        } else if(pType === 'lightning') {
+            for(let i=0; i<COLS; i++) set.add(grid[t.r][i]);
+            for(let i=0; i<ROWS; i++) set.add(grid[i][t.c]);
+        }
+
+        // 視覺標記
+        set.forEach(tile => {
+            tile.el.classList.add('matched');
+        });
+
+        await wait(400);
+        
+        // --- 修正關鍵：物理清除 ---
+        // 在重力計算前，必須明確將這些格子設為 null 並隱藏
+        set.forEach(tile => {
+            tile.type = null; 
+            tile.isSkill = false;
+            tile.el.classList.remove('matched', 'skill-ready');
+            tile.el.style.display = 'none'; // 確保看不見
+        });
+
+        // 呼叫重力填補空缺
+        await applyGravity();
+        
+        // 檢查道具是否引發連鎖
+        const m = findMatches();
+        if(m.length > 0) await processMatches(m);
+        else isProcessing = false;
+    }
+
+    // --- 7. 重力系統 (Gravity System) ---
+    async function applyGravity() {
+        for(let c=0; c<COLS; c++) {
+            let write = ROWS - 1;
+            // 1. 移動現有方塊填補空缺
+            for(let r=ROWS-1; r>=0; r--) {
+                if(grid[r][c].type !== null) {
+                    if(write !== r) {
+                        // 數據搬移
+                        grid[write][c].type = grid[r][c].type;
+                        grid[write][c].isSkill = grid[r][c].isSkill;
+                        // 原位置清空
+                        grid[r][c].type = null;
+                        grid[r][c].isSkill = false;
+                        
+                        // 視覺更新
+                        updateTileContent(grid[write][c]);
+                        updateTileContent(grid[r][c]);
+                    }
+                    write--;
+                }
+            }
+            // 2. 上方生成新方塊
+            for(let r=write; r>=0; r--) {
+                grid[r][c].type = activeCharKeys[Math.floor(Math.random() * activeCharKeys.length)];
+                grid[r][c].isSkill = false;
+                const t = grid[r][c];
+                updateTileContent(t); // 顯示出來
+                // 動畫處理
+                t.el.style.transition = 'none';
+                t.el.style.top = `-${100/ROWS}%`; // 瞬間移到上方
+                t.el.offsetHeight; // 強制重繪
+                t.el.style.transition = 'top 0.4s cubic-bezier(0.19, 1, 0.22, 1)';
+                updateTilePos(t, true); // 滑落
+            }
+        }
+        await wait(450); // 等待所有掉落完成
+    }
+
+    // --- 8. 技能與道具邏輯 ---
+    function triggerSkillEffect(t, set) {
+        const type = CHAR_DB[t.type].type;
+        createVFX(type, t);
+        playSound('skill');
+        
+        if(type === 'random') {
+            for(let i=0; i<5; i++) set.add(grid[Math.floor(Math.random()*ROWS)][Math.floor(Math.random()*COLS)]);
+        } else if (type === 'area') {
+            for(let r=t.r-1; r<=t.r+1; r++) for(let c=t.c-1; c<=t.c+1; c++) if(isValid(r,c)) set.add(grid[r][c]);
+        } else if (type === 'cross') {
+            for(let i=0; i<COLS; i++) set.add(grid[t.r][i]); for(let i=0; i<ROWS; i++) set.add(grid[i][t.c]);
+        } else if (type === 'row') for(let c=0; c<COLS; c++) set.add(grid[t.r][c]);
+          else if (type === 'col') for(let r=0; r<ROWS; r++) set.add(grid[r][t.c]);
+          else if (type === 'color') grid.flat().forEach(x => { if(x.type === t.type) set.add(x); });
+          else if (type === 'convert') {
+              for(let r=t.r-1; r<=t.r+1; r++) for(let c=t.c-1; c<=t.c+1; c++) 
+                  if(isValid(r,c) && grid[r][c].type !== null) { grid[r][c].type = t.type; updateTileContent(grid[r][c]); }
+          }
+    }
+
+    function useItem(name) {
+        if(isProcessing || props[name] <= 0) return;
+        if(name === 'shuffle') {
+            props.shuffle--; updatePropUI();
+            triggerDialogue('estrella', 'item'); 
+            playSound('shuffle');
+            shuffleBoard(); return;
+        }
+        if(activeProp === name) {
+            activeProp = null; document.querySelectorAll('.item-btn').forEach(b => b.classList.remove('active'));
+        } else {
+            activeProp = name;
+            document.querySelectorAll('.item-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-'+name).classList.add('active');
+            triggerDialogue(null, null, name==='bomb'?"點擊格子投擲炸彈！":"點擊格子發動雷電！");
+        }
+    }
+
+    function shuffleBoard() {
+        isProcessing = true;
+        // Fisher-Yates Shuffle
+        let types = grid.flat().map(t => ({type: t.type, isSkill: t.isSkill})).sort(()=>Math.random()-0.5);
+        let i=0;
+        // 視覺旋轉動畫
+        grid.flat().forEach(t => { 
+            t.type = types[i].type; t.isSkill = types[i].isSkill; i++; 
+            t.el.style.transform = 'scale(0) rotate(180deg)'; 
+        });
+        
+        setTimeout(() => { 
+            grid.flat().forEach(t => { 
+                updateTileContent(t); 
+                t.el.style.transform = 'scale(1) rotate(0deg)'; 
+            }); 
+            isProcessing = false; 
+            const m = findMatches(); 
+            if(m.length>0) processMatches(m); 
+        }, 500);
+    }
+
+    // --- 9. UI 與系統功能 ---
+    function checkLevelProgress() {
+        if(currentLevelScore >= targetScore) {
+            isProcessing = true;
+            playSound('levelUp');
+            setTimeout(() => {
+                gameState.level++; 
+                saveData();
+                triggerDialogue('novian', 'match', `抵達目的地！準備前往 Level ${gameState.level}！`);
+                initLevel(); // 進入下一關
+                isProcessing = false;
+            }, 1500);
+        }
+    }
+
+    let diaTimeout;
+    function triggerDialogue(charKey, type, customText) {
+        let text = customText, img = "https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%98%9F%E6%98%9F.png", name = "星星";
+        if(charKey && CHAR_DB[charKey]) {
+            const data = CHAR_DB[charKey];
+            img = data.img; name = data.name;
+            if(!text && data.quotes[type]) text = data.quotes[type][Math.floor(Math.random()*data.quotes[type].length)];
+        }
+        if(!text) return;
+        
+        const bubble = document.getElementById('dialogue-bubble');
+        document.getElementById('d-img').src = img;
+        document.getElementById('d-name').innerText = name;
+        document.getElementById('d-text').innerText = text;
+        
+        bubble.classList.add('show');
+        clearTimeout(diaTimeout);
+        diaTimeout = setTimeout(() => bubble.classList.remove('show'), 3500); // 3.5秒後消失
+    }
+
+    function toggleSkillInfo() {
+        let msg = "【本局角色技能】\n";
+        activeCharKeys.forEach(key => { msg += `● ${CHAR_DB[key].name}: ${SKILL_DESC[CHAR_DB[key].type]}\n`; });
+        alert(msg);
+    }
+
+    function addScore(val) { currentLevelScore += val; gameState.totalScore += val; updateUI(); }
+    
+    function updateUI() {
+        document.getElementById('ui-level').innerText = gameState.level;
+        document.getElementById('ui-total-score').innerText = gameState.totalScore;
+        document.getElementById('ui-target').innerText = targetScore;
+        const pct = Math.min(100, (currentLevelScore / targetScore) * 100);
+        document.getElementById('ui-progress').style.width = `${pct}%`;
+    }
+    
+    function updatePropUI() {
+        document.getElementById('cnt-bomb').innerText = props.bomb;
+        document.getElementById('cnt-lightning').innerText = props.lightning;
+        document.getElementById('cnt-shuffle').innerText = props.shuffle;
+    }
+
+    function updateTileContent(t) {
+        if(t.type === null) { 
+            t.el.style.display = 'none'; 
+            t.el.classList.remove('skill-ready'); 
+            return; 
+        }
+        t.el.style.display = 'block'; 
+        t.el.querySelector('img').src = CHAR_DB[t.type].img;
+        if(t.isSkill) t.el.classList.add('skill-ready'); 
+        else t.el.classList.remove('skill-ready');
+    }
+    
+    function updateTilePos(t, animate) { 
+        t.el.style.left = `${t.c * (100/COLS)}%`; 
+        t.el.style.top = `${t.r * (100/ROWS)}%`; 
+    }
+
+    // --- 10. 輔助函式 (Utils) ---
+    function findMatches() {
+        let res = [];
+        // 橫向檢查
+        for(let r=0; r<ROWS; r++) {
+            let m = [grid[r][0]];
+            for(let c=1; c<COLS; c++) {
+                if(grid[r][c].type && grid[r][c].type === grid[r][c-1].type) m.push(grid[r][c]);
+                else { if(m.length>=3) res.push([...m]); m=[grid[r][c]]; }
+            }
+            if(m.length>=3) res.push([...m]);
+        }
+        // 縱向檢查
+        for(let c=0; c<COLS; c++) {
+            let m = [grid[0][c]];
+            for(let r=1; r<ROWS; r++) {
+                if(grid[r][c].type && grid[r][c].type === grid[r-1][c].type) m.push(grid[r][c]);
+                else { if(m.length>=3) res.push([...m]); m=[grid[r][c]]; }
+            }
+            if(m.length>=3) res.push([...m]);
+        }
+        return res;
+    }
+
+    function isValid(r, c) { return r>=0 && r<ROWS && c>=0 && c<COLS; }
+    function getTileFromEl(el) { const div = el.closest('.tile'); if(!div) return null; for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) if(grid[r][c].el === div) return grid[r][c]; return null; }
+    function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+    
+    function showFloatText(txt, el) { 
+        const d = document.createElement('div'); d.className = 'float-text'; 
+        d.innerText = txt; 
+        const rect = el.getBoundingClientRect(); 
+        // 稍微修正位置到棋盤內
+        d.style.left = (el.offsetLeft + 10) + 'px'; 
+        d.style.top = el.offsetTop + 'px'; 
+        vfxEl.appendChild(d); setTimeout(() => d.remove(), 1200); 
+    }
+    
+    function createVFX(type, t) {
+        const flash = document.createElement('div'); 
+        flash.style.position='absolute'; 
+        flash.style.left=(t.el.offsetLeft-50)+'px'; 
+        flash.style.top=(t.el.offsetTop-50)+'px'; 
+        flash.style.width='150px'; flash.style.height='150px'; 
+        flash.style.borderRadius='50%'; 
+        flash.style.background='radial-gradient(circle, transparent, white)'; 
+        flash.style.zIndex='100';
+        vfxEl.appendChild(flash); 
+        flash.animate([{transform:'scale(0)', opacity:1}, {transform:'scale(2)', opacity:0}], {duration:400}); 
+        setTimeout(()=>flash.remove(), 400);
+    }
+
+</script>
+</body>
+</html>
