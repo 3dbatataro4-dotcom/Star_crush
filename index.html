@@ -515,7 +515,7 @@
         updatePropUI();
 
         // 設定目標分數 (指數成長)
-        targetScore = Math.floor(1000 * Math.pow(1.15, gameState.level - 1));
+        targetScore = Math.floor(1000 * Math.pow(1.01, gameState.level - 1));
         currentLevelScore = 0;
         
         // 隨機抽選 7 位角色 (保持新鮮感)
