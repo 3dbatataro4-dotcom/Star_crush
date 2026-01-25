@@ -243,6 +243,21 @@
             transition: transform 0.1s; cursor: pointer;
         }
         .btn-start:active { transform: translateY(8px); box-shadow: 0 0 0; }
+        /* 重置按鈕樣式 */
+.btn-reset {
+    background: transparent; 
+    border: 2px solid #FFAB91;
+    color: #D84315; 
+    padding: 8px 20px; 
+    border-radius: 30px;
+    font-size: 1rem; 
+    font-weight: bold; 
+    margin-top: 15px;
+    cursor: pointer; 
+    transition: all 0.2s;
+}
+.btn-reset:active { transform: scale(0.95); background: #FFAB91; color: #FFF; }
+
     </style>
 </head>
 <body>
@@ -296,14 +311,20 @@
         </button>
     </div>
 
-    <div id="title-screen">
-        <div class="title-card">
-            <img src="https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%98%9F%E6%98%9F.png" style="width:100px; height:100px; border-radius:50%; border:4px solid gold; margin-bottom:15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
-            <h1 style="color:#FF8F00; margin:0; text-shadow:2px 2px 0 #FFF;">全明星<br>無盡派對</h1>
-            <p style="color:#8D6E63; font-weight:bold; margin-top:10px;">目前等級: <span id="title-level">1</span></p>
-            <button class="btn-start" onclick="startGame()">START</button>
+   <div id="title-screen">
+    <div class="title-card">
+        <img src="https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%98%9F%E6%98%9F.png" style="width:100px; height:100px; border-radius:50%; border:4px solid gold; margin-bottom:15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+        <h1 style="color:#FF8F00; margin:0; text-shadow:2px 2px 0 #FFF;">全明星<br>無盡派對</h1>
+        <p style="color:#8D6E63; font-weight:bold; margin-top:10px;">目前等級: <span id="title-level">1</span></p>
+        
+        <button class="btn-start" onclick="startGame()">START</button>
+        
+        <br>
+        <button class="btn-reset" onclick="resetGameData()">重置進度</button>
         </div>
-    </div>
+</div>
+
+    
 
 <script>
     // --- 0. 音效與 BGM 系統 (Audio System) ---
@@ -508,6 +529,17 @@
         document.getElementById('title-screen').style.display = 'none';
         initLevel();
     }
+    function resetGameData() {
+    // 跳出確認視窗，避免誤按
+    if(confirm("確定要刪除存檔並重置等級嗎？\n(此動作無法復原)")) {
+        // 清除瀏覽器內的存檔
+        localStorage.removeItem('party_game_save_final');
+        
+        // 重新整理網頁，讓遊戲重新讀取初始狀態
+        location.reload(); 
+    }
+}
+
 
     function initLevel() {
         // 重置道具數量 (每關補滿，增加爽度)
