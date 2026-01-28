@@ -53,6 +53,25 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.03);
         }
 
+        /* Fever 條樣式 */
+        .fever-container {
+            flex: 1; margin: 0 15px; height: 24px;
+            background: rgba(0,0,0,0.1); border-radius: 12px;
+            border: 2px solid #FFF; position: relative; overflow: hidden;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .fever-fill {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, #FF8A80, #D500F9);
+            transition: width 0.3s ease-out;
+            box-shadow: 0 0 15px #D500F9;
+        }
+        .fever-text {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem; font-weight: 900; color: #FFF; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
         .info-row { display: flex; justify-content: space-between; align-items: flex-end; }
         
         .level-badge {
@@ -141,8 +160,38 @@
             text-shadow: 0 0 5px #FFF; animation: spin 3s infinite linear;
         }
 
+        /* Fever 模式特效 */
+        /* 移除原本的 hue-rotate，改為背景流光或其他不影響角色色相的效果 */
+        body.fever-mode::before {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(45deg, rgba(255,0,0,0.1), rgba(0,255,0,0.1), rgba(0,0,255,0.1));
+            background-size: 400% 400%; animation: fever-bg 3s ease infinite; pointer-events: none; z-index: 1;
+        }
+        @keyframes fever-bg { 0% {background-position: 0% 50%} 50% {background-position: 100% 50%} 100% {background-position: 0% 50%} }
+
+        .tile.fever-active .tile-inner {
+            box-shadow: 0 0 0 3px #FFF, 0 0 15px #FF4081;
+            border: 3px solid transparent;
+            background-image: linear-gradient(#FFF, #FFF), linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+            background-origin: border-box; background-clip: content-box, border-box;
+            animation: pulse-rainbow 0.5s infinite alternate;
+        }
+        @keyframes pulse-rainbow { from { transform: scale(0.95); } to { transform: scale(1.0); } }
+
+        /* 冰塊障礙樣式 */
+        .tile.frozen .tile-inner { filter: brightness(0.9) sepia(0.2) hue-rotate(180deg) saturate(1.5); }
+        .tile.frozen::after {
+            content: '❄️'; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); font-size: 24px; z-index: 20;
+            text-shadow: 0 0 5px #FFF; pointer-events: none;
+        }
+
         @keyframes breathe { 0% { filter: brightness(1); transform: scale(0.95); } 100% { filter: brightness(1.15); transform: scale(1.02); } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* 震動特效 */
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
 
         /* 消除動畫 */
         .tile.matched .tile-inner { animation: pop 0.35s forwards ease-out; }
@@ -182,6 +231,24 @@
         .d-content { display: flex; flex-direction: column; justify-content: center; }
         .d-name { font-size: 0.75rem; color: var(--primary-dark); font-weight: 900; margin-bottom: 2px; }
         .d-text { font-size: 0.9rem; color: var(--text-main); font-weight: bold; line-height: 1.2; }
+
+        /* --- 技能 Cut-in 動畫 --- */
+        #skill-cutin-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 90; display: none;
+            align-items: center; justify-content: center;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+        }
+        .cutin-container {
+            position: relative; width: 100%; height: 300px; display: flex; align-items: center; justify-content: center;
+        }
+        .cutin-img {
+            height: 100%; width: auto; object-fit: contain;
+            filter: drop-shadow(0 0 20px rgba(255,255,255,0.9));
+            transform: translateX(-100px); opacity: 0;
+        }
+        .cutin-active .cutin-img { animation: cutin-slide 1.5s cubic-bezier(0.19, 1, 0.22, 1) forwards; }
+        @keyframes cutin-slide { 0% { transform: translateX(-50%) scale(0.8); opacity: 0; } 20% { transform: translateX(0) scale(1.2); opacity: 1; } 80% { transform: translateX(0) scale(1); opacity: 1; } 100% { transform: translateX(50%) scale(1.2); opacity: 0; } }
 
         /* --- 底部道具欄 --- */
         #bottom-dock {
@@ -258,6 +325,63 @@
 }
 .btn-reset:active { transform: scale(0.95); background: #FFAB91; color: #FFF; }
 
+        /* --- 圖鑑與劇情 UI --- */
+        .modal-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); z-index: 2000;
+            display: none; flex-direction: column; padding: 20px;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; flex: 0 0 auto;
+        }
+        .modal-title { font-size: 1.5rem; font-weight: 900; color: var(--primary-dark); }
+        .btn-close {
+            background: #EEE; border: none; width: 40px; height: 40px; border-radius: 50%;
+            font-weight: bold; font-size: 1.2rem; color: #888;
+        }
+        
+        .gallery-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 15px; padding-bottom: 50px;
+        }
+        .char-card {
+            display: flex; flex-direction: column; align-items: center; gap: 5px;
+            opacity: 0.5; filter: grayscale(1); transition: all 0.3s;
+        }
+        .char-card.unlocked { opacity: 1; filter: grayscale(0); cursor: pointer; }
+        .char-card img {
+            width: 70px; height: 70px; border-radius: 20px; object-fit: cover;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 3px solid #FFF;
+        }
+        .char-name { font-size: 0.8rem; font-weight: bold; color: var(--text-sub); text-align: center; }
+
+        /* 角色詳情彈窗 */
+        #char-detail-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 2100;
+            display: none; align-items: center; justify-content: center;
+        }
+        .detail-card {
+            background: #FFF; width: 85%; max-width: 350px; border-radius: 30px;
+            padding: 30px; text-align: center; position: relative;
+            animation: floatUp 0.3s ease-out;
+        }
+        .detail-img { width: 120px; height: 120px; border-radius: 50%; border: 5px solid var(--accent); margin-bottom: 15px; object-fit: cover; }
+        .detail-name { font-size: 1.5rem; font-weight: 900; color: var(--primary-dark); margin-bottom: 10px; }
+        .detail-desc { font-size: 0.9rem; color: var(--text-main); line-height: 1.6; text-align: left; background: #FFF8E1; padding: 15px; border-radius: 15px; }
+
+        /* Combo 顯示特效 */
+        #combo-display {
+            position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            font-size: 4rem; font-weight: 900; color: #FFD700;
+            text-shadow: 0 0 10px #FF6F00, 3px 3px 0 #FFF;
+            z-index: 80; pointer-events: none; opacity: 0;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s;
+        }
+        #combo-display.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+
     </style>
 </head>
 <body>
@@ -266,6 +390,10 @@
         <div class="info-row">
             <div class="level-badge">
                 <span>⭐ Lv.</span><span id="ui-level">1</span>
+            </div>
+            <div class="fever-container">
+                <div class="fever-fill" id="ui-fever-fill"></div>
+                <div class="fever-text" id="ui-fever-text">FEVER</div>
             </div>
             <div class="total-score">總分: <span id="ui-total-score">0</span></div>
         </div>
@@ -279,7 +407,13 @@
         <div id="grid-container">
             <div id="grid"></div>
             <div id="vfx-layer"></div>
+            <div id="combo-display"></div>
             
+            <!-- 技能 Cut-in 層 -->
+            <div id="skill-cutin-layer">
+                <div class="cutin-container"><img class="cutin-img" id="cutin-img" src=""></div>
+            </div>
+
             <div class="float-dialogue-wrapper">
                 <div id="dialogue-bubble">
                     <img class="d-avatar" id="d-img" src="">
@@ -289,6 +423,25 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- 圖鑑畫面 -->
+    <div id="gallery-screen" class="modal-screen">
+        <div class="modal-header">
+            <div class="modal-title">角色圖鑑</div>
+            <button class="btn-close" onclick="closeGallery()">×</button>
+        </div>
+        <div class="gallery-grid" id="gallery-content"></div>
+    </div>
+
+    <!-- 角色詳情 -->
+    <div id="char-detail-overlay" onclick="this.style.display='none'">
+        <div class="detail-card" id="detail-card" onclick="event.stopPropagation()">
+            <img class="detail-img" id="detail-img" src="">
+            <div class="detail-name" id="detail-name"></div>
+            <div class="detail-desc" id="detail-desc"></div>
+            <button class="btn-start" style="margin-top:20px; font-size:1rem; padding:10px 30px;" onclick="document.getElementById('char-detail-overlay').style.display='none'">關閉</button>
         </div>
     </div>
 
@@ -318,6 +471,8 @@
         <p style="color:#8D6E63; font-weight:bold; margin-top:10px;">目前等級: <span id="title-level">1</span></p>
         
         <button class="btn-start" onclick="startGame()">START</button>
+        <br>
+        <button class="btn-reset" style="margin-top:10px; border-color:var(--secondary); color:var(--secondary);" onclick="openGallery()">角色圖鑑</button>
         
         <br>
         <button class="btn-reset" onclick="resetGameData()">重置進度</button>
@@ -327,9 +482,19 @@
     
 
 <script>
+    // --- 關卡配置 (Level Config) ---
+    const LEVEL_CONFIG = {
+        1: { target: 1000, ice: 0, shape: 'rect' },
+        2: { target: 2000, ice: 3, shape: 'rect' },
+        3: { target: 3000, ice: 6, shape: 'cross' },
+        4: { target: 4000, ice: 10, shape: 'donut' },
+        5: { target: 5000, ice: 15, shape: 'hourglass' }
+    };
+
     // --- 0. 音效與 BGM 系統 (Audio System) ---
     const AUDIO_SRC = {
         bgm: "https://file.garden/aWe99vhwaGcNwkok/%E6%B6%88%E6%B6%88%E6%A8%82/AudioCutter_%E1%84%89%E1%85%A2%E1%86%BA%E1%84%87%E1%85%A7%E1%86%AF(Daystar)-Sugar%20Cookie.mp3",
+        fever: "https://file.garden/aWe99vhwaGcNwkok/%E6%B6%88%E6%B6%88%E6%A8%82/%E3%81%BD%E3%81%A3%E3%81%B7%E3%81%99%E3%81%9F%E3%83%BC.mp3",
         match: "https://file.garden/aWe99vhwaGcNwkok/%E6%B6%88%E6%B6%88%E6%A8%82/%E6%B1%BA%E5%AE%9A%E3%83%9C%E3%82%BF%E3%83%B3%E3%82%92%E6%8A%BC%E3%81%9942.mp3",
         skill: "https://file.garden/aWe99vhwaGcNwkok/%E6%B6%88%E6%B6%88%E6%A8%82/%E6%B1%BA%E5%AE%9A%E3%83%9C%E3%82%BF%E3%83%B3%E3%82%92%E6%8A%BC%E3%81%9915.mp3",
         swapFail: "https://file.garden/aWe99vhwaGcNwkok/%E6%B6%88%E6%B6%88%E6%A8%82/%E6%B1%BA%E5%AE%9A%E3%83%9C%E3%82%BF%E3%83%B3%E3%82%92%E6%8A%BC%E3%81%9939.mp3",
@@ -351,6 +516,10 @@
     BGM.loop = true;
     BGM.volume = 0.4; // 稍微小聲一點以免吵雜
 
+    const FEVER_BGM = new Audio(AUDIO_SRC.fever);
+    FEVER_BGM.loop = true;
+    FEVER_BGM.volume = 0.5;
+
     function playSound(name) {
         if (SFX[name]) {
             SFX[name].currentTime = 0;
@@ -361,32 +530,32 @@
     // --- 1. 角色資料庫 (包含性格修正台詞) ---
     const CHAR_DB = {
         'venator': { 
-            name: '維納托', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E7%B6%AD%E7%B4%8D%E6%89%98.png', type: 'random',
-            quotes: { match: ['讚美本王！', '哼，這點小事。', '本王的預知沒錯。'], skill: ['這就是本王的力量！', '一切都在計算之中。'], item: ['嗯？有趣的發明。'] }
+            name: '維納托', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E7%B6%AD%E7%B4%8D%E6%89%98.png', type: 'color',
+            quotes: { match: ['讚美本王！', '哼，這點小事。', '本王的預知沒錯。'], skill: ['聽本王號令！', '全體消除！'], item: ['嗯？有趣的發明。'] }
         },
         'narcissus': { 
-            name: '納希瑟斯', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E7%B4%8D%E5%B8%8C%E7%91%9F%E6%96%AF.png', type: 'area',
-            quotes: { match: ['為了維納托先生！', '謹慎行動。', '排除障礙。'], skill: ['我會守護這裡！', '別想傷害大家。'], item: ['為了保護...'] }
+            name: '納希瑟斯', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E7%B4%8D%E5%B8%8C%E7%91%9F%E6%96%AF.png', type: 'convert',
+            quotes: { match: ['為了維納托先生！', '謹慎行動。', '排除障礙。'], skill: ['看著我的眼睛...', '都變成我吧！'], item: ['為了保護...'] }
         },
         'ora': { 
             name: '奧拉', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%A5%A7%E6%8B%89.png', type: 'cross',
             quotes: { match: ['麻煩死了。', '嘖。', '別浪費時間。'], skill: ['肅清開始。', '時間，停止吧。'], item: ['快點結束。'] }
         },
         'melas': { 
-            name: '蜜拉思', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%9C%9C%E6%8B%89%E6%80%9D.png', type: 'area',
+            name: '蜜拉思', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%9C%9C%E6%8B%89%E6%80%9D.png', type: 'random',
             quotes: { match: ['哎呀，真有趣～', '呵呵。', '我很惜命的。'], skill: ['給你們一點小詛咒～', '看戲時間結束囉。'], item: ['這東西安全嗎？'] }
         },
         'manmu': { 
-            name: '小目', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%B0%8F%E7%9B%AE.png', type: 'convert',
+            name: '小目', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%B0%8F%E7%9B%AE.png', type: 'row',
             quotes: { match: ['寶貝你看！我厲害吧！', '我是最棒的總裁！', '天涼了...'], skill: ['通通變成我的資產！', '閃亮登場✨！'], item: ['這個值多少錢？'] }
         },
         'mollie': { 
-            name: '茉莉', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%8C%89%E8%8E%89.png', type: 'random',
-            quotes: { match: ['要加班了嗎...', '唉...', '我的芒果真可愛。'], skill: ['緊急手術開始。', '別受傷囉。'], item: ['這是醫療器材嗎？'] }
+            name: '茉莉', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%8C%89%E8%8E%89.png', type: 'boost',
+            quotes: { match: ['要加班了嗎...', '唉...', '我的芒果真可愛。'], skill: ['打起精神來！', '補充能量！'], item: ['這是醫療器材嗎？'] }
         },
         'virdrakos': { 
             name: '蘭蘭', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%98%AD%E8%98%AD.png', type: 'area',
-            quotes: { match: ['哇哈哈！蘭蘭是最強的呀！', '誰敢擋蘭蘭呀？', '錢拿來呀！'], skill: ['吃我一記龍之吐息呀！', '全部燒掉呀！'], item: ['這個好玩！給我呀！'] }
+            quotes: { match: ['哇哈哈！蘭蘭是最強的呀！', '誰敢擋蘭蘭呀？', '錢拿來呀！'], skill: ['吃我一記龍之吐息呀！', '全部燒起來呀！'], item: ['這個好玩！給我呀！'] }
         },
         'jornona': { 
             name: '喬諾娜', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%96%AC%E8%AB%BE%E5%A8%9C.png', type: 'color',
@@ -394,7 +563,7 @@
         },
         'kleion': { 
             name: '克里昂', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%85%8B%E9%87%8C%E6%98%82.png', type: 'col',
-            quotes: { match: ['正義必勝！', '來運動吧！', '我是直男。'], skill: ['衝鋒陷陣！', '化學實驗開始！'], item: ['這不科學。'] }
+            quotes: { match: ['正義必勝！', '來運動吧！', '我是直男。'], skill: ['衝鋒陷陣！', '這就是化學反應！'], item: ['這不科學。'] }
         },
         'costa': { 
             name: '科絲塔', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E7%A7%91%E7%B5%B2%E5%A1%94.png', type: 'cross',
@@ -409,23 +578,23 @@
             quotes: { match: ['報告！發現目標。', '小雅各...', '機械運作正常。'], skill: ['外骨骼全功率輸出。', '修正錯誤。'], item: ['報告！申請使用道具。'] }
         },
         'peter': { 
-            name: '彼得', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%BD%BC%E5%BE%97.png', type: 'cross',
-            quotes: { match: ['離我遠點。', '貓貓！', 'Shit。'], skill: ['驅散邪靈！', '我要喝潔廁靈了。'], item: ['這東西吉祥嗎？'] }
+            name: '彼得', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%BD%BC%E5%BE%97.png', type: 'area',
+            quotes: { match: ['離我遠點。', '貓貓！', 'Shit。'], skill: ['驅散邪靈！', '這裡太髒了。'], item: ['這東西吉祥嗎？'] }
         },
         'lynn': { 
-            name: '林恩', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%9E%97%E6%81%A9.png', type: 'convert',
-            quotes: { match: ['涼拌。', '有錢賺嗎？', '彼得閉嘴。'], skill: ['這就是商業手段。', '通通收購。'], item: ['成本多少？'] }
+            name: '林恩', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%9E%97%E6%81%A9.png', type: 'boost',
+            quotes: { match: ['涼拌。', '有錢賺嗎？', '彼得閉嘴。'], skill: ['這就是商業手段。', '效率提升。'], item: ['成本多少？'] }
         },
         'novian': { 
-            name: '諾維安', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%AB%BE%E7%B6%AD%E5%AE%89.png', type: 'row',
-            quotes: { match: ['今天天氣真好！', '我是船長！', '大家要好好相處喔！'], skill: ['揚帆啟航囉！', '全速前進！'], item: ['這個好像很有用！'] }
+            name: '諾維安', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E8%AB%BE%E7%B6%AD%E5%AE%89.png', type: 'col',
+            quotes: { match: ['今天天氣真好！', '我是船長！', '大家要好好相處喔！'], skill: ['這條航線沒問題！', '全速前進！'], item: ['這個好像很有用！'] }
         },
         'caroline': { 
             name: '卡洛特', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%8D%A1%E6%B4%9B%E7%89%B9.png', type: 'random',
             quotes: { match: ['這很友善。', '嗶嗶——收到訊號。', '這不友善！(尖叫)'], skill: ['電波干擾...開始。', '連線中斷。'], item: ['不明物體檢測中。'] }
         },
         'estrella': { 
-            name: '星星', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%98%9F%E6%98%9F.png', type: 'random',
+            name: '星星', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%98%9F%E6%98%9F.png', type: 'area',
             quotes: { match: ['我來幫忙了！', '我有好多個！', '我要吃東西！'], skill: ['分裂——！', '嘿咻嘿咻！'], item: ['這個可以吃嗎？'] }
         },
         'poseidon': { 
@@ -433,7 +602,7 @@
             quotes: { match: ['天天開心！', '衝啊！！', '大黑你看！'], skill: ['大浪來啦！', '哈哈哈哈！'], item: ['這是什麼好玩的？'] }
         },
         'hades': { 
-            name: '冥神', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%86%A5%E7%A5%9E.png', type: 'row',
+            name: '冥神', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%86%A5%E7%A5%9E.png', type: 'random',
             quotes: { match: ['...', '海神...', '有點亮。'], skill: ['...安靜。', '...消失。'], item: ['...'] }
         },
         'noran': { 
@@ -457,12 +626,12 @@
             quotes: { match: ['想喝茶了～', '阿朵拉～', '真無聊。'], skill: ['聽話～', '都變成我的孩子吧。'], item: ['送給阿朵拉好了。'] }
         },
         'adorabilis': { 
-            name: '阿朵拉', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E9%98%BF%E6%9C%B5%E6%8B%89.png', type: 'random',
+            name: '阿朵拉', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E9%98%BF%E6%9C%B5%E6%8B%89.png', type: 'cross',
             quotes: { match: ['莉莉絲！', '我的孩子呢？', '討厭小偷！'], skill: ['乖孩子～', '縫起來吧。'], item: ['可以用來做人偶嗎？'] }
         },
         'lazar': { 
-            name: '拉扎爾', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%8B%89%E6%89%8E%E7%88%BE.png', type: 'random', 
-            quotes: { match: ['真是個好孩子。', '要聽故事嗎？', '呵呵。'], skill: ['痛痛飛走囉。', '治療時間。'], item: ['小心使用喔。'] }
+            name: '拉扎爾', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E6%8B%89%E6%89%8E%E7%88%BE.png', type: 'boost', 
+            quotes: { match: ['真是個好孩子。', '要聽故事嗎？', '呵呵。'], skill: ['痛痛飛走囉。', '大家加油。'], item: ['小心使用喔。'] }
         },
         'hassel': { 
             name: '哈蘇', img: 'https://file.garden/aWe99vhwaGcNwkok/%E7%A0%B4%E9%A0%AD/%E5%93%88%E8%98%87.png', type: 'col',
@@ -476,9 +645,29 @@
 
     // 技能說明文本
     const SKILL_DESC = {
-        'random': '【隨機】隨機消除5個', 'area': '【爆炸】周圍九宮格', 'cross': '【十字】消除十字線',
-        'color': '【同色】消除所有同色', 'row': '【橫掃】消除整列', 'col': '【貫穿】消除整行',
-        'convert': '【轉化】周圍變自己'
+        'random': '【隨機】隨機消除5個', 'area': '【爆炸】消除周圍九宮格', 'cross': '【十字】消除十字範圍',
+        'color': '【號令】消除場上所有同色', 'row': '【橫掃】消除整列', 'col': '【貫穿】消除整行',
+        'convert': '【同化】將周圍變為自己', 'boost': '【應援】大幅增加 Fever 值',
+        'bomb_3x3': '【爆破】消除 3x3 區域'
+    };
+
+    // --- 棋盤形狀定義 ---
+    const BOARD_SHAPES = {
+        'rect': null,
+        'cross': [
+            [0,0,1,1,0,0], [0,1,1,1,1,0], [1,1,1,1,1,1], [1,1,1,1,1,1], [1,1,1,1,1,1],
+            [1,1,1,1,1,1], [1,1,1,1,1,1], [0,1,1,1,1,0], [0,0,1,1,0,0]
+        ],
+        'donut': [
+            [1,1,1,1,1,1], [1,1,1,1,1,1], [1,1,1,1,1,1],
+            [1,1,0,0,1,1], [1,1,0,0,1,1], [1,1,0,0,1,1],
+            [1,1,1,1,1,1], [1,1,1,1,1,1], [1,1,1,1,1,1]
+        ],
+        'hourglass': [
+            [1,1,1,1,1,1], [0,1,1,1,1,0], [0,0,1,1,0,0],
+            [0,0,0,0,0,0], [0,0,1,1,0,0], [0,0,1,1,0,0],
+            [0,1,1,1,1,0], [1,1,1,1,1,1], [1,1,1,1,1,1]
+        ]
     };
 
     // --- 2. 遊戲變數與 DOM (Globals) ---
@@ -488,13 +677,20 @@
     let activeCharKeys = [];
     
     // 存檔與狀態
-    let gameState = { level: 1, totalScore: 0 };
+    let gameState = { level: 1, totalScore: 0, unlockedChars: [] };
     let currentLevelScore = 0;
     let targetScore = 1000;
     let isProcessing = false;
     let activeProp = null;
     let activeInputTile = null;
     let startX, startY;
+    let comboCount = 0; // Combo 計數器
+
+    // Fever 系統變數
+    let feverValue = 0;
+    const MAX_FEVER = 100;
+    let isFeverTime = false;
+    let feverTimer = null;
     
     // 道具狀態
     let props = { bomb: 3, lightning: 3, shuffle: 3 };
@@ -510,12 +706,17 @@
     // 接下來是 Part 3 (遊戲核心邏輯)
     // --- 3. 初始化與存檔 (Init & Save) ---
     window.onload = function() {
+        // 啟動 Fever 衰退計時器
+        setInterval(() => {
+            if (!isFeverTime && feverValue > 0) { feverValue = Math.max(0, feverValue - 2); updateUI(); }
+        }, 1000);
         loadData();
     };
 
     function loadData() {
         const saved = localStorage.getItem('party_game_save_final');
         if (saved) gameState = JSON.parse(saved);
+        if (!gameState.unlockedChars) gameState.unlockedChars = [];
         document.getElementById('title-level').innerText = gameState.level;
     }
 
@@ -540,35 +741,74 @@
     }
 }
 
-
     function initLevel() {
         // 重置道具數量 (每關補滿，增加爽度)
         props = { bomb: 3, lightning: 3, shuffle: 3 };
         updatePropUI();
 
-        // 設定目標分數 (指數成長)
-        targetScore = Math.floor(1000 * Math.pow(1.01, gameState.level - 1));
+        // 讀取關卡配置，若超過配置則生成隨機難度
+        const config = LEVEL_CONFIG[gameState.level] || {
+            target: Math.floor(12000 * Math.pow(1.2, gameState.level - 5)),
+            ice: Math.min(20, 15 + Math.floor((gameState.level - 5) * 2)),
+            shape: 'rect'
+        };
+
+        targetScore = config.target;
         currentLevelScore = 0;
         
         // 隨機抽選 7 位角色 (保持新鮮感)
         activeCharKeys = Object.keys(CHAR_DB).sort(() => 0.5 - Math.random()).slice(0, 7);
         
+        // 解鎖角色
+        activeCharKeys.forEach(key => {
+            if(!gameState.unlockedChars.includes(key)) gameState.unlockedChars.push(key);
+        });
+        saveData();
+
         updateUI();
-        createGrid();
+        createGrid(config.ice, config.shape);
         
         // 開場對話
-        triggerDialogue(activeCharKeys[0], 'match', `第 ${gameState.level} 關開始！盡情消除吧！`);
+        triggerDialogue(activeCharKeys[0], 'match', `第 ${gameState.level} 關！目標 ${targetScore} 分！`);
     }
 
-    function createGrid() {
+    function createGrid(iceCount, shapeName) {
         gridEl.innerHTML = '';
         grid = [];
+        const shape = BOARD_SHAPES[shapeName] || BOARD_SHAPES['rect'];
+
         for(let r=0; r<ROWS; r++) {
             grid[r] = [];
             for(let c=0; c<COLS; c++) {
-                spawnTile(r, c, false);
+                // 檢查形狀遮罩
+                if(shape && shape[r] && shape[r][c] === 0) {
+                    // 創建隱形佔位符
+                    const el = document.createElement('div');
+                    el.className = 'tile';
+                    el.style.visibility = 'hidden';
+                    gridEl.appendChild(el);
+                    grid[r][c] = { r, c, type: null, el, isSkill: false, isFrozen: false, isVoid: true };
+                    updateTilePos(grid[r][c], false);
+                } else {
+                    spawnTile(r, c, false);
+                }
             }
         }
+        
+        // 生成冰塊障礙
+        let placedIce = 0;
+        let attempts = 0;
+        while(placedIce < iceCount && attempts < 100) {
+            attempts++;
+            let r = Math.floor(Math.random() * ROWS);
+            let c = Math.floor(Math.random() * COLS);
+            if(!grid[r][c].isVoid && !grid[r][c].isFrozen) {
+                grid[r][c].isFrozen = true;
+                grid[r][c].el.classList.add('frozen');
+                placedIce++;
+            }
+        }
+
         // 延遲消除初始連線 (避免開場就特效亂飛)
         setTimeout(resolveInitialMatches, 500); 
     }
@@ -578,6 +818,7 @@
         if(matches.length > 0) {
             // 初始如果有連線，直接安靜地重洗對應格子
             matches.forEach(m => m.forEach(t => {
+                if(t.isVoid) return;
                 t.type = activeCharKeys[Math.floor(Math.random() * activeCharKeys.length)];
                 updateTileContent(t);
             }));
@@ -605,7 +846,7 @@
         el.addEventListener('mousedown', handleMouseDown); 
 
         gridEl.appendChild(el);
-        const tile = { r, c, type, el, isSkill: false };
+        const tile = { r, c, type, el, isSkill: false, isFrozen: false };
         grid[r][c] = tile;
         updateTilePos(tile, animate);
         return tile;
@@ -658,11 +899,22 @@
 
     // --- 5. 核心邏輯 (Core Logic) ---
     async function swapTiles(t1, t2) {
+        // 虛空無法移動
+        if(t1.isVoid || t2.isVoid) return;
+
+        // 冰塊無法移動
+        if(t1.isFrozen || t2.isFrozen) {
+            playSound('swapFail');
+            t1.el.animate([{transform:'translateX(0)'}, {transform:'translateX(5px)'}, {transform:'translateX(0)'}], {duration: 150});
+            return;
+        }
+
         isProcessing = true;
         // 交換數據與視覺
         let tmpType = t1.type; t1.type = t2.type; t2.type = tmpType;
         let tmpSkill = t1.isSkill; t1.isSkill = t2.isSkill; t2.isSkill = tmpSkill;
         updateTileContent(t1); updateTileContent(t2);
+        comboCount = 0; // 玩家主動移動時重置 Combo
         
         await wait(200);
         const matches = findMatches();
@@ -682,19 +934,52 @@
     }
 
     async function processMatches(matches) {
+        comboCount++; // 增加 Combo
+        if(comboCount > 1) {
+            showCombo(comboCount);
+            playSound('match'); // 連擊時多播一次音效增加爽感
+        }
+
         let scoreGain = 0;
         let removeSet = new Set();
         let skillSpawns = []; 
+
+        // 處理冰塊消除 (消除周圍的冰塊)
+        matches.forEach(m => {
+            m.forEach(t => {
+                // 檢查上下左右鄰居
+                [[0,1],[0,-1],[1,0],[-1,0]].forEach(([dr, dc]) => {
+                    let nr = t.r + dr, nc = t.c + dc;
+                    if(isValid(nr, nc) && grid[nr][nc].isFrozen) {
+                        grid[nr][nc].isFrozen = false;
+                        grid[nr][nc].el.classList.remove('frozen');
+                        createVFX('ice_break', grid[nr][nc]);
+                    }
+                });
+            });
+        });
+
+        // Fever 模式下，所有消除都會引發額外爆炸！
+        if (isFeverTime) {
+            matches.forEach(m => {
+                // 隨機選一個點作為爆炸中心
+                let center = m[0];
+                for(let r=center.r-1; r<=center.r+1; r++) 
+                    for(let c=center.c-1; c<=center.c+1; c++) 
+                        if(isValid(r,c)) removeSet.add(grid[r][c]);
+                createVFX('area', center); // 視覺特效
+            });
+        }
 
         matches.forEach(m => {
             // 4個以上生成技能棋
             if(m.length >= 4) {
                 const center = m[Math.floor(m.length/2)];
-                skillSpawns.push(center);
+                if (!removeSet.has(center)) skillSpawns.push(center); // 避免已被 Fever 爆炸選中的格子
                 m = m.filter(t => t !== center); // 中心點不消除，轉為技能
             }
             m.forEach(t => removeSet.add(t));
-            scoreGain += m.length * 10;
+            scoreGain += m.length * 10 * (1 + (comboCount * 0.1)); // Combo 越高分數越高
             if(m.length > 3) scoreGain += 20; // 額外加分
 
             // 隨機對話
@@ -709,6 +994,12 @@
             });
         });
 
+        // 增加 Fever 值
+        if (!isFeverTime) {
+            feverValue = Math.min(MAX_FEVER, feverValue + (matches.length * 12)); // 增加 Fever 獲取速度 (爽感UP)
+            if (feverValue >= MAX_FEVER) activateFever();
+        }
+
         addScore(scoreGain);
         playSound('match');
         if (window.navigator && window.navigator.vibrate) navigator.vibrate(30);
@@ -720,7 +1011,7 @@
 
         // 數據清除
         removeSet.forEach(t => {
-            t.type = null; t.isSkill = false;
+            t.type = null; t.isSkill = false; t.isFrozen = false;
             t.el.classList.remove('matched', 'skill-ready');
             t.el.style.display = 'none'; // 隱藏
         });
@@ -737,7 +1028,14 @@
         // 連鎖檢查
         const newM = findMatches();
         if(newM.length > 0) await processMatches(newM);
-        else {
+        else { // 連鎖結束
+            // 檢查是否還有可移動的步數 (死局檢測)
+            if(!hasValidMoves()) {
+                showFloatText("No Moves! Shuffling...", gridEl);
+                await wait(1000);
+                await shuffleBoard(); // 自動重洗
+                return; // shuffleBoard 會處理後續
+            }
             isProcessing = false;
             checkLevelProgress();
         }
@@ -776,6 +1074,7 @@
 
         // 視覺標記
         set.forEach(tile => {
+            if(tile.isVoid) return;
             tile.el.classList.add('matched');
         });
 
@@ -784,6 +1083,7 @@
         // --- 修正關鍵：物理清除 ---
         // 在重力計算前，必須明確將這些格子設為 null 並隱藏
         set.forEach(tile => {
+            if(tile.isVoid) return;
             tile.type = null; 
             tile.isSkill = false;
             tile.el.classList.remove('matched', 'skill-ready');
@@ -805,7 +1105,7 @@
             let write = ROWS - 1;
             // 1. 移動現有方塊填補空缺
             for(let r=ROWS-1; r>=0; r--) {
-                if(grid[r][c].type !== null) {
+                if(grid[r][c].type !== null && !grid[r][c].isVoid) {
                     if(write !== r) {
                         // 數據搬移
                         grid[write][c].type = grid[r][c].type;
@@ -813,18 +1113,22 @@
                         // 原位置清空
                         grid[r][c].type = null;
                         grid[r][c].isSkill = false;
+                        grid[r][c].isFrozen = false;
                         
                         // 視覺更新
                         updateTileContent(grid[write][c]);
                         updateTileContent(grid[r][c]);
                     }
-                    write--;
+                    do { write--; } while(write >= 0 && grid[write][c].isVoid); // 跳過虛空
                 }
+                else if (grid[r][c].isVoid && write === r) write--; // 如果當前寫入點是虛空，向上移
             }
             // 2. 上方生成新方塊
             for(let r=write; r>=0; r--) {
+                if(grid[r][c].isVoid) continue;
                 grid[r][c].type = activeCharKeys[Math.floor(Math.random() * activeCharKeys.length)];
                 grid[r][c].isSkill = false;
+                grid[r][c].isFrozen = false;
                 const t = grid[r][c];
                 updateTileContent(t); // 顯示出來
                 // 動畫處理
@@ -838,14 +1142,48 @@
         await wait(450); // 等待所有掉落完成
     }
 
+    // --- Fever 系統 ---
+    function activateFever() {
+        isFeverTime = true;
+        document.body.classList.add('fever-mode');
+        document.getElementById('ui-fever-text').innerText = "FEVER TIME!!!";
+        playSound('levelUp'); // 借用升級音效
+        showFloatText("FEVER TIME!", gridEl);
+
+        // 切換音樂
+        BGM.pause();
+        FEVER_BGM.currentTime = 0;
+        FEVER_BGM.play().catch(()=>{});
+        
+        // 震動螢幕
+        document.getElementById('game-stage').classList.add('shake');
+        setTimeout(() => document.getElementById('game-stage').classList.remove('shake'), 500);
+
+        setTimeout(() => {
+            isFeverTime = false;
+            feverValue = 0;
+            document.body.classList.remove('fever-mode');
+            document.getElementById('ui-fever-text').innerText = "FEVER";
+            
+            // 切換回 BGM
+            FEVER_BGM.pause();
+            BGM.play().catch(()=>{});
+            
+            updateUI();
+        }, 15000); // 持續時間延長至 15 秒
+    }
+
     // --- 8. 技能與道具邏輯 ---
     function triggerSkillEffect(t, set) {
         const type = CHAR_DB[t.type].type;
         createVFX(type, t);
         playSound('skill');
         
+        // 觸發技能 Cut-in 與語音
+        showSkillCutin(t.type);
+        
         if(type === 'random') {
-            for(let i=0; i<5; i++) set.add(grid[Math.floor(Math.random()*ROWS)][Math.floor(Math.random()*COLS)]);
+            for(let i=0; i<7; i++) set.add(grid[Math.floor(Math.random()*ROWS)][Math.floor(Math.random()*COLS)]); // 增強為 7 個
         } else if (type === 'area') {
             for(let r=t.r-1; r<=t.r+1; r++) for(let c=t.c-1; c<=t.c+1; c++) if(isValid(r,c)) set.add(grid[r][c]);
         } else if (type === 'cross') {
@@ -856,6 +1194,12 @@
           else if (type === 'convert') {
               for(let r=t.r-1; r<=t.r+1; r++) for(let c=t.c-1; c<=t.c+1; c++) 
                   if(isValid(r,c) && grid[r][c].type !== null) { grid[r][c].type = t.type; updateTileContent(grid[r][c]); }
+          } else if (type === 'boost') {
+              // 瞬間增加 Fever
+              feverValue = Math.min(MAX_FEVER, feverValue + 30);
+              showFloatText("Fever Up!", t.el);
+              if (feverValue >= MAX_FEVER && !isFeverTime) activateFever();
+              updateUI();
           }
     }
 
@@ -878,25 +1222,30 @@
     }
 
     function shuffleBoard() {
-        isProcessing = true;
-        // Fisher-Yates Shuffle
-        let types = grid.flat().map(t => ({type: t.type, isSkill: t.isSkill})).sort(()=>Math.random()-0.5);
-        let i=0;
-        // 視覺旋轉動畫
-        grid.flat().forEach(t => { 
-            t.type = types[i].type; t.isSkill = types[i].isSkill; i++; 
-            t.el.style.transform = 'scale(0) rotate(180deg)'; 
-        });
-        
-        setTimeout(() => { 
+        return new Promise(resolve => {
+            isProcessing = true;
+            // Fisher-Yates Shuffle
+            let types = grid.flat().filter(t => !t.isVoid).map(t => ({type: t.type, isSkill: t.isSkill})).sort(()=>Math.random()-0.5);
+            let i=0;
+            // 視覺旋轉動畫
             grid.flat().forEach(t => { 
-                updateTileContent(t); 
-                t.el.style.transform = 'scale(1) rotate(0deg)'; 
-            }); 
-            isProcessing = false; 
-            const m = findMatches(); 
-            if(m.length>0) processMatches(m); 
-        }, 500);
+                if(t.isVoid) return;
+                t.type = types[i].type; t.isSkill = types[i].isSkill; i++; 
+                t.el.style.transform = 'scale(0) rotate(180deg)'; 
+            });
+            
+            setTimeout(() => { 
+                grid.flat().forEach(t => { 
+                    if(t.isVoid) return;
+                    updateTileContent(t); 
+                    t.el.style.transform = 'scale(1) rotate(0deg)'; 
+                }); 
+                isProcessing = false; 
+                const m = findMatches(); 
+                if(m.length>0) processMatches(m);
+                resolve();
+            }, 500);
+        });
     }
 
     // --- 9. UI 與系統功能 ---
@@ -934,13 +1283,32 @@
         diaTimeout = setTimeout(() => bubble.classList.remove('show'), 3500); // 3.5秒後消失
     }
 
+    function showSkillCutin(charKey) {
+        const layer = document.getElementById('skill-cutin-layer');
+        const img = document.getElementById('cutin-img');
+        if(CHAR_DB[charKey]) {
+            img.src = CHAR_DB[charKey].img;
+            layer.style.display = 'flex';
+            layer.classList.remove('cutin-active');
+            void layer.offsetWidth; // trigger reflow
+            layer.classList.add('cutin-active');
+            setTimeout(() => { layer.style.display = 'none'; }, 1500);
+        }
+    }
+
     function toggleSkillInfo() {
         let msg = "【本局角色技能】\n";
         activeCharKeys.forEach(key => { msg += `● ${CHAR_DB[key].name}: ${SKILL_DESC[CHAR_DB[key].type]}\n`; });
         alert(msg);
     }
 
-    function addScore(val) { currentLevelScore += val; gameState.totalScore += val; updateUI(); }
+    function addScore(val) { 
+        const multiplier = isFeverTime ? 2 : 1;
+        const finalScore = val * multiplier;
+        currentLevelScore += finalScore; 
+        gameState.totalScore += finalScore; 
+        updateUI(); 
+    }
     
     function updateUI() {
         document.getElementById('ui-level').innerText = gameState.level;
@@ -948,6 +1316,10 @@
         document.getElementById('ui-target').innerText = targetScore;
         const pct = Math.min(100, (currentLevelScore / targetScore) * 100);
         document.getElementById('ui-progress').style.width = `${pct}%`;
+        
+        // 更新 Fever 條
+        const feverPct = (feverValue / MAX_FEVER) * 100;
+        document.getElementById('ui-fever-fill').style.width = isFeverTime ? '100%' : `${feverPct}%`;
     }
     
     function updatePropUI() {
@@ -957,6 +1329,7 @@
     }
 
     function updateTileContent(t) {
+        if(t.isVoid) return;
         if(t.type === null) { 
             t.el.style.display = 'none'; 
             t.el.classList.remove('skill-ready'); 
@@ -966,11 +1339,22 @@
         t.el.querySelector('img').src = CHAR_DB[t.type].img;
         if(t.isSkill) t.el.classList.add('skill-ready'); 
         else t.el.classList.remove('skill-ready');
+        if(t.isFrozen) t.el.classList.add('frozen');
+        else t.el.classList.remove('frozen');
     }
     
     function updateTilePos(t, animate) { 
         t.el.style.left = `${t.c * (100/COLS)}%`; 
         t.el.style.top = `${t.r * (100/ROWS)}%`; 
+    }
+
+    function showCombo(count) {
+        const el = document.getElementById('combo-display');
+        el.innerText = count + " COMBO!";
+        el.classList.remove('show');
+        void el.offsetWidth; // trigger reflow
+        el.classList.add('show');
+        setTimeout(() => el.classList.remove('show'), 1000);
     }
 
     // --- 10. 輔助函式 (Utils) ---
@@ -980,7 +1364,7 @@
         for(let r=0; r<ROWS; r++) {
             let m = [grid[r][0]];
             for(let c=1; c<COLS; c++) {
-                if(grid[r][c].type && grid[r][c].type === grid[r][c-1].type) m.push(grid[r][c]);
+                if(!grid[r][c].isVoid && grid[r][c].type && grid[r][c].type === grid[r][c-1].type) m.push(grid[r][c]);
                 else { if(m.length>=3) res.push([...m]); m=[grid[r][c]]; }
             }
             if(m.length>=3) res.push([...m]);
@@ -989,7 +1373,7 @@
         for(let c=0; c<COLS; c++) {
             let m = [grid[0][c]];
             for(let r=1; r<ROWS; r++) {
-                if(grid[r][c].type && grid[r][c].type === grid[r-1][c].type) m.push(grid[r][c]);
+                if(!grid[r][c].isVoid && grid[r][c].type && grid[r][c].type === grid[r-1][c].type) m.push(grid[r][c]);
                 else { if(m.length>=3) res.push([...m]); m=[grid[r][c]]; }
             }
             if(m.length>=3) res.push([...m]);
@@ -997,7 +1381,34 @@
         return res;
     }
 
-    function isValid(r, c) { return r>=0 && r<ROWS && c>=0 && c<COLS; }
+    // 檢查是否還有有效移動 (死局檢測)
+    function hasValidMoves() {
+        for(let r=0; r<ROWS; r++) {
+            for(let c=0; c<COLS; c++) {
+                if(grid[r][c].isVoid || grid[r][c].isFrozen || grid[r][c].type === null) continue;
+                
+                // 檢查右方交換
+                if(c < COLS-1 && !grid[r][c+1].isVoid && !grid[r][c+1].isFrozen && grid[r][c+1].type !== null) {
+                    swapTypes(grid[r][c], grid[r][c+1]);
+                    if(findMatches().length > 0) { swapTypes(grid[r][c], grid[r][c+1]); return true; }
+                    swapTypes(grid[r][c], grid[r][c+1]);
+                }
+                // 檢查下方交換
+                if(r < ROWS-1 && !grid[r+1][c].isVoid && !grid[r+1][c].isFrozen && grid[r+1][c].type !== null) {
+                    swapTypes(grid[r][c], grid[r+1][c]);
+                    if(findMatches().length > 0) { swapTypes(grid[r][c], grid[r+1][c]); return true; }
+                    swapTypes(grid[r][c], grid[r+1][c]);
+                }
+            }
+        }
+        return false;
+    }
+
+    function swapTypes(t1, t2) {
+        let tmp = t1.type; t1.type = t2.type; t2.type = tmp;
+    }
+
+    function isValid(r, c) { return r>=0 && r<ROWS && c>=0 && c<COLS && !grid[r][c].isVoid; }
     function getTileFromEl(el) { const div = el.closest('.tile'); if(!div) return null; for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) if(grid[r][c].el === div) return grid[r][c]; return null; }
     function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
     
@@ -1020,9 +1431,73 @@
         flash.style.borderRadius='50%'; 
         flash.style.background='radial-gradient(circle, transparent, white)'; 
         flash.style.zIndex='100';
+        
+        // 根據類型改變特效顏色
+        if(type === 'ice_break') flash.style.background='radial-gradient(circle, transparent, #81D4FA)';
+        if(type === 'area') flash.style.background='radial-gradient(circle, transparent, #FF5722)'; // 爆炸紅
+        if(type === 'cross') flash.style.background='radial-gradient(circle, transparent, #FFD700)'; // 十字金
+        if(type === 'color') flash.style.background='radial-gradient(circle, transparent, #E040FB)'; // 魔法紫
+
+        // 額外增加星星噴發特效 (爽感UP)
+        for(let i=0; i<5; i++) {
+            const star = document.createElement('div');
+            star.innerText = '✨';
+            star.style.position = 'absolute';
+            star.style.left = (t.el.offsetLeft + 20) + 'px';
+            star.style.top = (t.el.offsetTop + 20) + 'px';
+            star.style.fontSize = (10 + Math.random()*20) + 'px';
+            star.style.zIndex = 101;
+            vfxEl.appendChild(star);
+            star.animate([
+                { transform: 'translate(0,0) scale(0)', opacity: 1 },
+                { transform: `translate(${(Math.random()-0.5)*100}px, ${(Math.random()-0.5)*100}px) scale(1.5)`, opacity: 0 }
+            ], { duration: 600, easing: 'ease-out' });
+            setTimeout(() => star.remove(), 600);
+        }
+
         vfxEl.appendChild(flash); 
         flash.animate([{transform:'scale(0)', opacity:1}, {transform:'scale(2)', opacity:0}], {duration:400}); 
         setTimeout(()=>flash.remove(), 400);
+    }
+
+    // --- 圖鑑系統 ---
+    function openGallery() {
+        const screen = document.getElementById('gallery-screen');
+        const content = document.getElementById('gallery-content');
+        content.innerHTML = '';
+        
+        Object.keys(CHAR_DB).forEach(key => {
+            const char = CHAR_DB[key];
+            const isUnlocked = gameState.unlockedChars && gameState.unlockedChars.includes(key);
+            
+            const card = document.createElement('div');
+            card.className = `char-card ${isUnlocked ? 'unlocked' : ''}`;
+            card.innerHTML = `
+                <img src="${char.img}">
+                <div class="char-name">${isUnlocked ? char.name : '???'}</div>
+            `;
+            if(isUnlocked) {
+                card.onclick = () => showCharDetail(key);
+            }
+            content.appendChild(card);
+        });
+        
+        screen.style.display = 'flex';
+    }
+    
+    function closeGallery() { document.getElementById('gallery-screen').style.display = 'none'; }
+    
+    function showCharDetail(key) {
+        const char = CHAR_DB[key];
+        document.getElementById('detail-img').src = char.img;
+        document.getElementById('detail-name').innerText = char.name;
+        document.getElementById('detail-desc').innerHTML = `
+            <b>技能類型:</b> ${SKILL_DESC[char.type]}<br><br>
+            <b>語音台詞:</b><br>
+            "${char.quotes.match[0]}"<br>
+            "${char.quotes.skill[0]}"
+        `;
+        document.getElementById('char-detail-overlay').style.display = 'flex';
     }
 
 </script>
